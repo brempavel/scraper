@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_DB: scraper
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d scraper"]
+      interval: 1s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "5432:5432"
+    volumes:
+      - data:/var/lib/postgresql/data
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      DB_PORT: 5432
+      POSTGRES_DB: scraper
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      JWT_ACCESS_SECRET: jwt-access-secret
+      JWT_REFRESH_SECRET: jwt-refresh-secret
+    depends_on:
+      - db
+    command: npm run start
+
+volumes:
+  data:

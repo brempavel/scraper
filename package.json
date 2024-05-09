@@ -1,0 +1,35 @@
+{
+	"name": "scraper",
+	"version": "1.0.0",
+	"description": "",
+	"main": "src/infrastructure/index.ts",
+	"scripts": {
+		"build": "tsc",
+		"start": "npm run build && nodemon ./build/infrastructure/index"
+	},
+	"author": "Pavlo Brem",
+	"license": "ISC",
+	"devDependencies": {
+		"@types/bcrypt": "^5.0.2",
+		"@types/cookie-parser": "^1.4.7",
+		"@types/express": "^4.17.21",
+		"@types/jsonwebtoken": "^9.0.6",
+		"@types/papaparse": "^5.3.14",
+		"dotenv": "^16.4.5",
+		"nodemon": "^3.1.0",
+		"typescript": "^5.4.5"
+	},
+	"dependencies": {
+		"@google-cloud/local-auth": "^2.1.0",
+		"axios": "^1.6.8",
+		"bcrypt": "^5.1.1",
+		"cheerio": "^1.0.0-rc.12",
+		"cookie-parser": "^1.4.6",
+		"express": "^4.19.2",
+		"googleapis": "^105.0.0",
+		"jsonwebtoken": "^9.0.2",
+		"papaparse": "^5.4.1",
+		"reflect-metadata": "^0.2.2",
+		"typeorm": "^0.3.20"
+	}
+}
