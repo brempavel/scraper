@@ -90,7 +90,13 @@ export const createGoogleSpreadsheet = async (jsonData) => {
 		keyFile: CREDENTIALS_PATH,
 		scopes: SCOPES,
 	});
-	const client = (await auth.getClient()) as OAuth2Client;
+
+	let client;
+	try {
+		client = (await auth.getClient()) as OAuth2Client;
+	} catch (e) {
+		throw ApiError.UnauthorizedError();
+	}
 	const googleSheets = google.sheets({ version: 'v4', auth: client });
 
 	const createRequestBody = {
@@ -99,12 +105,15 @@ export const createGoogleSpreadsheet = async (jsonData) => {
 		},
 	};
 
-	const {
-		data: { spreadsheetId },
-	} = await googleSheets.spreadsheets.create({
-		requestBody: createRequestBody,
-		fields: 'spreadsheetId',
-	});
+	let createSheetResponse;
+	try {
+		createSheetResponse = await googleSheets.spreadsheets.create({
+			requestBody: createRequestBody,
+			fields: 'spreadsheetId',
+		});
+	} catch (e) {
+		throw ApiError.InternalServerError(e);
+	}
 
 	const values = [
 		Object.keys(jsonData[0]),
@@ -113,7 +122,7 @@ export const createGoogleSpreadsheet = async (jsonData) => {
 	];
 
 	const updateRequest = {
-		spreadsheetId: spreadsheetId,
+		spreadsheetId: createSheetResponse.data.spreadsheetId,
 		range: 'A1',
 		valueInputOption: 'USER_ENTERED',
 		resource: {
@@ -121,16 +130,24 @@ export const createGoogleSpreadsheet = async (jsonData) => {
 		},
 	};
 
-	await googleSheets.spreadsheets.values.update(updateRequest);
+	try {
+		await googleSheets.spreadsheets.values.update(updateRequest);
+	} catch (e) {
+		throw ApiError.InternalServerError(e);
+	}
 
 	const drive = google.drive({ version: 'v3', auth: client });
-	await drive.permissions.create({
-		fileId: spreadsheetId,
-		requestBody: {
-			type: 'anyone',
-			role: 'writer',
-		},
-	});
+	try {
+		await drive.permissions.create({
+			fileId: createSheetResponse.data.spreadsheetId,
+			requestBody: {
+				type: 'anyone',
+				role: 'writer',
+			},
+		});
+	} catch (e) {
+		throw ApiError.InternalServerError(e);
+	}
 
-	return `https://docs.google.com/spreadsheets/d/${spreadsheetId}`;
+	return `https://docs.google.com/spreadsheets/d/${createSheetResponse.data.spreadsheetId}`;
 };

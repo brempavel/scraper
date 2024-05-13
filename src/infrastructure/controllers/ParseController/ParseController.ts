@@ -11,23 +11,23 @@ import { ApiError } from '../../errors/ApiError';
 @controller('')
 export class ParseController {
 	@get('/parse')
-	// @use(authMiddleware)
+	@use(authMiddleware)
 	async parse(
 		req: Request & { user: Omit<User, 'password'> },
 		res: Response,
 		next: NextFunction
 	): Promise<void> {
 		try {
-			// const { email } = req.user;
+			const { email } = req.user;
 
-			// if (!email) {
-			// 	throw ApiError.UnauthorizedError();
-			// }
+			if (!email) {
+				throw ApiError.UnauthorizedError();
+			}
 
-			// const parseRequestService = new ParseRequestService(
-			// 	new PostgresParseRequestRepository()
-			// );
-			// await parseRequestService.addUser(email);
+			const parseRequestService = new ParseRequestService(
+				new PostgresParseRequestRepository()
+			);
+			await parseRequestService.addUser(email);
 
 			const { format } = req.query;
 			const jsonData = await scrapeData();
