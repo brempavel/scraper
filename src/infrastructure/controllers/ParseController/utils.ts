@@ -75,104 +75,62 @@ export const scrapeData = async () => {
 	return speakersList;
 };
 
-const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
-const TOKEN_PATH = path.join(
-	process.cwd(),
-	'/src/infrastructure/controllers/ParseController/token.json'
-);
+const SCOPES = [
+	'https://www.googleapis.com/auth/spreadsheets',
+	'https://www.googleapis.com/auth/drive',
+];
 const CREDENTIALS_PATH = path.join(
 	process.cwd(),
 	'/src/infrastructure/controllers/ParseController/credentials.json'
 );
 
-const loadSavedCredentialsIfExist = async () => {
-	try {
-		const content = await fs.readFile(TOKEN_PATH);
-		const credentials = JSON.parse(content.toString());
-		return google.auth.fromJSON(credentials);
-	} catch (err) {
-		return null;
-	}
-};
-
-const saveCredentials = async (client: OAuth2Client) => {
-	const content = await fs.readFile(CREDENTIALS_PATH);
-	const keys = JSON.parse(content.toString());
-	const key = keys.installed || keys.web;
-	const payload = JSON.stringify({
-		type: 'authorized_user',
-		client_id: key.client_id,
-		client_secret: key.client_secret,
-		refresh_token: client.credentials.refresh_token,
-	});
-	await fs.writeFile(TOKEN_PATH, payload);
-};
-
-const authorize = async () => {
-	let client = (await loadSavedCredentialsIfExist()) as OAuth2Client;
-	console.log(`authorize: ${client}`);
-	if (client) {
-		return client;
-	}
-	try {
-		client = await authenticate({
-			scopes: SCOPES,
-			keyfilePath: CREDENTIALS_PATH,
-		});
-	} catch (e) {
-		console.log(e);
-	}
-	console.log('after authentication');
-	if (client.credentials) {
-		await saveCredentials(client);
-	}
-	return client;
-};
 // @ts-ignore
 export const createGoogleSpreadsheet = async (jsonData) => {
-	let auth;
-	try {
-		auth = await authorize();
-	} catch (e) {
-		console.log(e);
-		throw ApiError.UnauthorizedError();
-	}
+	const auth = new google.auth.GoogleAuth({
+		keyFile: CREDENTIALS_PATH,
+		scopes: SCOPES,
+	});
+	const client = (await auth.getClient()) as OAuth2Client;
+	const googleSheets = google.sheets({ version: 'v4', auth: client });
 
-	const service = google.sheets({ version: 'v4', auth });
 	const createRequestBody = {
 		properties: {
 			title: 'title',
 		},
 	};
 
+	const {
+		data: { spreadsheetId },
+	} = await googleSheets.spreadsheets.create({
+		requestBody: createRequestBody,
+		fields: 'spreadsheetId',
+	});
+
 	const values = [
-		Object.keys(jsonData[0]), // Column headers
+		Object.keys(jsonData[0]),
 		// @ts-ignore
-		...jsonData.map((row) => Object.values(row)), // Row values
+		...jsonData.map((row) => Object.values(row)),
 	];
-	try {
-		const {
-			data: { spreadsheetId },
-		} = await service.spreadsheets.create({
-			requestBody: createRequestBody,
-			fields: 'spreadsheetId',
-		});
 
-		const updateRequest = {
-			spreadsheetId: spreadsheetId,
-			range: 'A1',
-			valueInputOption: 'USER_ENTERED',
-			resource: {
-				values,
-			},
-		};
+	const updateRequest = {
+		spreadsheetId: spreadsheetId,
+		range: 'A1',
+		valueInputOption: 'USER_ENTERED',
+		resource: {
+			values,
+		},
+	};
 
-		await service.spreadsheets.values.update(updateRequest);
+	await googleSheets.spreadsheets.values.update(updateRequest);
 
-		console.log(`Spreadsheet ID: ${spreadsheetId}`);
-		return spreadsheetId;
-	} catch (err) {
-		// TODO (developer) - Handle exception
-		throw err;
-	}
+	const drive = google.drive({ version: 'v3', auth: client });
+	await drive.permissions.create({
+		fileId: spreadsheetId,
+		requestBody: {
+			type: 'anyone',
+			role: 'writer',
+		},
+	});
+
+	return `https://docs.google.com/spreadsheets/d/${spreadsheetId}`;
 };

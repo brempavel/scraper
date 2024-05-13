@@ -11,23 +11,23 @@ import { ApiError } from '../../errors/ApiError';
 @controller('')
 export class ParseController {
 	@get('/parse')
-	@use(authMiddleware)
+	// @use(authMiddleware)
 	async parse(
 		req: Request & { user: Omit<User, 'password'> },
 		res: Response,
 		next: NextFunction
 	): Promise<void> {
 		try {
-			const { email } = req.user;
+			// const { email } = req.user;
 
-			if (!email) {
-				throw ApiError.UnauthorizedError();
-			}
+			// if (!email) {
+			// 	throw ApiError.UnauthorizedError();
+			// }
 
-			const parseRequestService = new ParseRequestService(
-				new PostgresParseRequestRepository()
-			);
-			await parseRequestService.addUser(email);
+			// const parseRequestService = new ParseRequestService(
+			// 	new PostgresParseRequestRepository()
+			// );
+			// await parseRequestService.addUser(email);
 
 			const { format } = req.query;
 			const jsonData = await scrapeData();
@@ -44,16 +44,13 @@ export class ParseController {
 					break;
 				case 'csv':
 					const csv = Papa.unparse(jsonData);
-					res.setHeader(
-						'Content-Disposition',
-						'attachment; filename=data.json'
-					);
-					res.setHeader('Content-Type', 'application/json');
+					res.setHeader('Content-Disposition', 'attachment; filename=data.csv');
+					res.setHeader('Content-Type', 'text/csv');
 					res.send(csv);
 					break;
 				case 'gsheet':
-					await createGoogleSpreadsheet(jsonData);
-					res.sendStatus(200);
+					const spreadsheetURL = await createGoogleSpreadsheet(jsonData);
+					res.send(spreadsheetURL);
 					break;
 				default:
 					throw ApiError.BadRequest('Invalid requested format');
