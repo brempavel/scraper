@@ -6,6 +6,12 @@ This Node.js application scrapes data from the Interaction Design Association Co
 
 ## How to run application
 
+1. Create a Google Cloud Service Account (https://console.cloud.google.com/iam-admin/serviceaccounts)
+2. Create and Download the Service Account Key
+3. Rename the downloaded key file to `credentials.json`.
+4. Move or copy this file into the root directory of your project where your docker-compose.yml file is located.
+5. Run Your Docker Containers:
+
 ```
 docker-compose up --build
 ```
