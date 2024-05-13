@@ -1,14 +1,14 @@
 import * as cheerio from 'cheerio';
 import axios from 'axios';
-import fs from 'fs/promises';
 import path from 'path';
 import process from 'process';
+import dotenv from 'dotenv';
 import { ApiError } from '../../errors/ApiError';
 import { LinkType, ParsedLinks } from './types';
 import { google } from 'googleapis';
-import { GoogleAuth, OAuth2Client } from 'google-auth-library';
-import { authenticate } from '@google-cloud/local-auth';
-import { JSONClient } from 'google-auth-library/build/src/auth/googleauth';
+import { OAuth2Client } from 'google-auth-library';
+
+dotenv.config();
 
 const parseLinks = (links: string[]): ParsedLinks => {
 	const allLinks = links.reduce((parsedLinks: ParsedLinks, link) => {
@@ -79,15 +79,13 @@ const SCOPES = [
 	'https://www.googleapis.com/auth/spreadsheets',
 	'https://www.googleapis.com/auth/drive',
 ];
-const CREDENTIALS_PATH = path.join(
-	process.cwd(),
-	'/src/infrastructure/controllers/ParseController/credentials.json'
-);
+
+import fs from 'fs';
 
 // @ts-ignore
 export const createGoogleSpreadsheet = async (jsonData) => {
 	const auth = new google.auth.GoogleAuth({
-		keyFile: CREDENTIALS_PATH,
+		keyFile: process.env.GOOGLE_CREDENTIALS_PATH,
 		scopes: SCOPES,
 	});
 
@@ -95,6 +93,7 @@ export const createGoogleSpreadsheet = async (jsonData) => {
 	try {
 		client = (await auth.getClient()) as OAuth2Client;
 	} catch (e) {
+		console.log('client not found');
 		throw ApiError.UnauthorizedError();
 	}
 	const googleSheets = google.sheets({ version: 'v4', auth: client });

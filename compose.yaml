@@ -30,6 +30,9 @@ services:
       POSTGRES_PASSWORD: password
       JWT_ACCESS_SECRET: jwt-access-secret
       JWT_REFRESH_SECRET: jwt-refresh-secret
+      GOOGLE_CREDENTIALS_PATH: '/app/credentials/credentials.json'
+    volumes:
+      - ./credentials.json:/app/credentials/credentials.json:ro
     depends_on:
       - db
     command: npm run start
